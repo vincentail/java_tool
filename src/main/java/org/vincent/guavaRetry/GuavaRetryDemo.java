@@ -18,6 +18,7 @@ public class GuavaRetryDemo {
             .retryIfExceptionOfType(IOException.class)//抛出IOException时重试
             .withStopStrategy(StopStrategies.stopAfterAttempt(3))//尝试执行三次，即重试两次
             .withWaitStrategy(WaitStrategies.fibonacciWait(2, TimeUnit.SECONDS))//重试间隔
+            .withRetryListener(new MyRetryListener())//重试监听器
             .build();
     static AtomicInteger nullTry = new AtomicInteger(0);
     static AtomicInteger exceptionTry = new AtomicInteger(0);
@@ -50,5 +51,24 @@ public class GuavaRetryDemo {
             System.out.println("Exception retry time：" + exceptionTry.addAndGet(1));
             throw new Exception();
         });// 模拟Exception
+    }
+
+    static class MyRetryListener<Boolean> implements RetryListener {
+
+        @Override
+        public <Boolean> void onRetry(Attempt<Boolean> attempt) {
+            // 重试次数
+            System.out.println("retry time:" + attempt.getAttemptNumber());
+            System.out.println("距离第一次重试的延迟:" + attempt.getDelaySinceFirstAttempt());
+            System.out.println("hasException:" +attempt.hasException());
+            System.out.println("hasResult:" +attempt.hasResult());
+            try {
+                Boolean result = attempt.get();
+                System.out.print(",result get=" + result);
+            } catch (ExecutionException e) {
+                System.err.println("this attempt produce exception." + e.getCause().toString());
+            }
+
+        }
     }
 }
